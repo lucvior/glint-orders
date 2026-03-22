@@ -1,44 +1,133 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>GLINT Order Lookup</title>
+  <title>GLINT Order System</title>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+  <style>
+    body { font-family: Arial; margin: 20px; background: #f5f5f5; }
+    h2 { margin-top: 30px; }
+    input, textarea { width: 300px; margin: 5px 0; padding: 8px; border: 1px solid #ccc; }
+    button { margin: 5px; padding: 10px 15px; cursor: pointer; border: none; background: black; color: white; }
+    button:hover { opacity: 0.8; }
+    .order-list div { background: white; padding: 10px; margin: 5px 0; border: 1px solid #ddd; }
+    .label { width: 4in; height: 6in; background: white; padding: 15px; box-sizing: border-box; position: relative; display: none; }
+    .header { display: flex; align-items: center; gap: 10px; border-bottom: 2px solid black; padding-bottom: 10px; }
+    .logo-img { width: 50px; }
+    .logo-text { font-size: 24px; letter-spacing: 3px; }
+    .section { margin-top: 12px; font-size: 14px; }
+    .order-id { font-weight: bold; font-size: 16px; margin-top: 10px; }
+    .qr { position: absolute; bottom: 15px; right: 15px; }
+    @media print {
+      body * { visibility: hidden; }
+      .label, .label * { visibility: visible; }
+      .label { position: absolute; top: 0; left: 0; }
+    }
+  </style>
 </head>
 <body>
-  <h2>GLINT Order Lookup</h2>
-  <input type="text" id="orderId" placeholder="Enter Order ID">
-  <button onclick="showOrder()">Show Order</button>
 
-  <div id="orderDetails" style="margin-top:20px;"></div>
+<h2>GLINT Order Creator</h2>
 
-  <script>
-    // Example orders (replace later with real orders)
-    const orders = {
-      "GL-168001": {name:"John Doe", phone:"+971500000000", address:"Dubai Marina, Dubai, UAE"},
-      "GL-168002": {name:"Jane Smith", phone:"+971511111111", address:"Downtown Dubai, Dubai, UAE"}
-    };
+<input id="name" placeholder="Customer Name"><br>
+<input id="phone" placeholder="Phone"><br>
+<textarea id="address" placeholder="Address"></textarea><br>
+<button onclick="createOrder()">Create Order</button>
 
-    function showOrder() {
-      const id = document.getElementById("orderId").value;
-      const div = document.getElementById("orderDetails");
-      if (orders[id]) {
-        div.innerHTML = `
-          <p><b>Order:</b> ${id}</p>
-          <p><b>Name:</b> ${orders[id].name}</p>
-          <p><b>Phone:</b> ${orders[id].phone}</p>
-          <p><b>Address:</b> ${orders[id].address}</p>
-        `;
-      } else {
-        div.innerHTML = "<p>Order not found.</p>";
-      }
-    }
+<h2>Orders</h2>
+<div id="orders" class="order-list"></div>
 
-    // Check if URL has order query parameter
-    const urlParams = new URLSearchParams(window.location.search);
-    const orderParam = urlParams.get('order');
-    if(orderParam) {
-      document.getElementById('orderId').value = orderParam;
-      showOrder();
-    }
-  </script>
+<div id="label" class="label">
+  <div class="header">
+    <img src="logo.png" class="logo-img">
+    <div class="logo-text">GLINT</div>
+  </div>
+  <div class="order-id" id="l_order"></div>
+  <div class="section" id="l_name"></div>
+  <div class="section" id="l_address"></div>
+  <div class="section" id="l_phone"></div>
+  <canvas id="qrcode" class="qr"></canvas>
+</div>
+
+<script>
+let orders = JSON.parse(localStorage.getItem("orders") || "[]");
+
+function saveOrders() { localStorage.setItem("orders", JSON.stringify(orders)); }
+
+function createOrder() {
+  const order = {
+    id: "GL-" + Date.now(),
+    name: document.getElementById("name").value,
+    phone: document.getElementById("phone").value,
+    address: document.getElementById("address").value
+  };
+  orders.push(order);
+  saveOrders();
+  displayOrders();
+}
+
+function displayOrders() {
+  const div = document.getElementById("orders");
+  div.innerHTML = "";
+  orders.forEach(o => {
+    div.innerHTML += `
+      <div>
+        ${o.id} - ${o.name}
+        <button onclick="printLabel('${o.id}')">Print</button>
+        <button onclick="viewOrder('${o.id}')">View</button>
+      </div>
+    `;
+  });
+}
+
+function printLabel(id) {
+  const o = orders.find(x => x.id === id);
+  document.getElementById("label").style.display = "block";
+  document.getElementById("l_order").innerText = "Order: " + o.id;
+  document.getElementById("l_name").innerText = o.name;
+  document.getElementById("l_address").innerText = o.address;
+  document.getElementById("l_phone").innerText = "📞 " + o.phone;
+  QRCode.toCanvas(
+    document.getElementById("qrcode"),
+    window.location.origin + window.location.pathname + "?order=" + o.id,
+    { width: 120 }
+  );
+  setTimeout(() => window.print(), 300);
+}
+
+function viewOrder(id) {
+  const o = orders.find(x => x.id === id);
+  alert(
+    "Order: " + o.id + "\n" +
+    "Name: " + o.name + "\n" +
+    "Phone: " + o.phone + "\n" +
+    "Address: " + o.address
+  );
+}
+
+displayOrders();
+
+// فتح الطلب مباشرة إذا الرابط يحتوي ?order=...
+const urlParams = new URLSearchParams(window.location.search);
+const orderParam = urlParams.get('order');
+if (orderParam) {
+  let storedOrders = JSON.parse(localStorage.getItem("orders") || "[]");
+  const o = storedOrders.find(x => x.id === orderParam);
+  if (o) {
+    document.getElementById("label").style.display = "block";
+    document.getElementById("l_order").innerText = "Order: " + o.id;
+    document.getElementById("l_name").innerText = o.name;
+    document.getElementById("l_address").innerText = o.address;
+    document.getElementById("l_phone").innerText = "📞 " + o.phone;
+    QRCode.toCanvas(
+      document.getElementById("qrcode"),
+      window.location.origin + window.location.pathname + "?order=" + o.id,
+      { width: 120 }
+    );
+  } else {
+    alert("Order not found");
+  }
+}
+</script>
+
 </body>
 </html>
