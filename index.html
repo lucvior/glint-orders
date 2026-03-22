@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>GLINT Order Lookup</title>
+</head>
+<body>
+  <h2>GLINT Order Lookup</h2>
+  <input type="text" id="orderId" placeholder="Enter Order ID">
+  <button onclick="showOrder()">Show Order</button>
+
+  <div id="orderDetails" style="margin-top:20px;"></div>
+
+  <script>
+    // Example orders (replace later with real orders)
+    const orders = {
+      "GL-168001": {name:"John Doe", phone:"+971500000000", address:"Dubai Marina, Dubai, UAE"},
+      "GL-168002": {name:"Jane Smith", phone:"+971511111111", address:"Downtown Dubai, Dubai, UAE"}
+    };
+
+    function showOrder() {
+      const id = document.getElementById("orderId").value;
+      const div = document.getElementById("orderDetails");
+      if (orders[id]) {
+        div.innerHTML = `
+          <p><b>Order:</b> ${id}</p>
+          <p><b>Name:</b> ${orders[id].name}</p>
+          <p><b>Phone:</b> ${orders[id].phone}</p>
+          <p><b>Address:</b> ${orders[id].address}</p>
+        `;
+      } else {
+        div.innerHTML = "<p>Order not found.</p>";
+      }
+    }
+
+    // Check if URL has order query parameter
+    const urlParams = new URLSearchParams(window.location.search);
+    const orderParam = urlParams.get('order');
+    if(orderParam) {
+      document.getElementById('orderId').value = orderParam;
+      showOrder();
+    }
+  </script>
+</body>
+</html>
